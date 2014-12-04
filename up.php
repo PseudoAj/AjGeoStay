@@ -2,6 +2,7 @@
 ini_set('memory_limit','256M');
 ini_set('max_execution_time', 900); 
 error_reporting(0);
+//echo $beginTime;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +49,10 @@ src="http://maps.googleapis.com/maps/api/js">
   $numPoint=0;
   $staypath="Results\staypoints".date('Y-m-d-h-i-s').".txt";
   $seqpath="Results\seq".date('Y-m-d-h-i-s').".txt";
+  $uniqueSeq="Results\uniSeq".date('Y-m-d-h-i-s').".txt";
+  $labelLearnPath="Results\lablearn".date('Y-m-d-h-i-s').".txt";
+  //$finalSeqPath="Results\finSeq".date('Y-m-d-h-i-s').".txt";
+  $newSeqPath="newseq".date('Y-m-d-h-i-s').".txt";
   //This is our size condition  
   //This is our limit file type condition  
   //Here we check that $ok was not set to 0 by an error  
@@ -171,8 +176,9 @@ src="http://maps.googleapis.com/maps/api/js">
 	
 	//Main login for calculation of staypoints
 	$starray= array();
+	$finalStayArray=array();
 		
-		
+	$beginTime=microtime(true);
 	$i=0;
 	$j=0;
 	$staypoint=0;
@@ -246,13 +252,145 @@ src="http://maps.googleapis.com/maps/api/js">
 		
 	}
 	
+	$i=1;
+	$parsed=array();
+	$newActCount=0;
 	for($i=1;$i<=$actCount;$i++)
 	{
-		
+		$j=$i+1;
+		$itCount=1;
+		$staylat=$starray[$i]['lat'];
+		$staylon=$starray[$i]['lon'];
+		$newSumLat=$staylat;
+		$newSumLon=$staylon;
+		if(in_array($i,$parsed))
+			{
+				//echo "<br>I know this point<br>";
+				continue;
+			}
+				
+		while($j<=$actCount)
+		{	
+			
+			if(in_array($j,$parsed))
+			{
+				//echo "<br>I know this point<br>";
+				break;
+				}
+			$nexStaylat=$starray[$j]['lat'];
+			$nexStaylon=$starray[$j]['lon'];
+			$newDist= distance($staylat,$staylon,$nexStaylat,$nexStaylon, "K");
+			$newDist=$newDist*1000;
+			//echo "<br>".$i." ".$j."<br>";
+			if($newDist>0)
+			{
+				if($newDist<15 )
+				{
+					array_push($parsed,$j);
+					$newSumLat=$newSumLat+$nexStaylat;
+					$newSumLon=$newSumLon+$nexStaylon;
+					$itCount++;
+					//echo "<br>".$newSumLat.",".$newSumLon.",".$itCount."<br>";
+					//writeFile($uniqueSeq,$nexStaylat.",".$nexStaylon);
+					//echo "found same stay point and distance: ".$newDist;
+					//$j++;	
+				}
+				else
+				{
+					$i=$j;
+					//echo "<br>found different stay point and distance: ".$newDist."<br>";
+					
+					break;
+				}
+			}
+			$j++;
 		
 		}
+		$uniStayLat=($newSumLat/$itCount);
+		$uniStayLon=($newSumLon/$itCount);
+		if(($prvUniLat!=$uniStayLat)&&($prvUniLon!=$uniStayLon))
+		{
+			writeFile($uniqueSeq,$uniStayLat.",".$uniStayLon);
+			$finalStayArray[$newActCount]=array('lat'=>$uniStayLat, 'lon'=>$uniStayLon);
+			$newActCount++;
+		}
+		
+		$prvUniLat=$uniStayLat;
+		$prvUniLon=$uniStayLon;
+			
+				
+		
+	}
 	
-	//var_dump($starray);
+	function checkLab($setArray,$checkLat,$checkLon)
+	{
+		$found=0;
+		for($i=0;$i<count($setArray);$i++)
+		{
+			$arrLat=$setArray[$i]['lat'];
+			$arrLon=$setArray[$i]['lon'];
+			$labDist=distance($arrLat,$arrLon,$checkLat,$checkLon, "K");
+			$labDist=$labDist*1000;
+			if($labDist<25)
+			{
+				//echo "I know this point label";
+				return $setArray[$i]['lab'];
+				
+			}
+			else
+			{
+				 	
+			}
+		
+			
+		}
+	}
+	
+	$labArray=array();
+	$seqArray=array();
+	$pointLab="J";
+	for($i=0;$i<$newActCount;$i++)
+	{
+		$labLat=$finalStayArray[$i]['lat'];
+		$labLon=$finalStayArray[$i]['lon'];
+			
+		if(count($labArray)>0)
+		{
+			$pointLab=checkLab($labArray,$labLat,$labLon);
+			if($pointLab)
+			{
+				
+			}
+			else
+			{
+				$pointLab="A".rand();
+				$labArray[$i]=array('lab'=>$pointLab,'lat'=>$labLat, 'lon'=>$labLon);	
+			}
+			
+		}
+		else
+		{
+			$pointLab="A".rand();
+			$labArray[$i]=array('lab'=>$pointLab,'lat'=>$labLat, 'lon'=>$labLon);
+		}
+		//echo $pointLab."->";
+		$seqArray[$i]=$pointLab;
+		
+	}
+	
+	for($i=0;$i<count($labArray);$i++)
+	{
+		writeFile($labelLearnPath,$labArray[$i]['lab'].",".$labArray[$i]['lat'].",".$labArray[$i]['lon']);
+	}
+	
+	for($i=0;$i<count($seqArray);$i++)
+	{
+		writeFile($newSeqPath,$seqArray[$i].",");
+		//writeFile($finalSeqPath,",");
+	}
+	
+	
+	//var_dump($seqArray);
 	
 	
 	/*while(!feof($myfile)) 
@@ -299,6 +437,11 @@ src="http://maps.googleapis.com/maps/api/js">
     */
 	//echo json_encode($starray[1]['lat']);
 	echo "<p class="."lead".">Total Number of Stay Points:".$actCount."</p>";
+	$endTime=microtime(true);
+	//echo $endTime;
+	$timeElaspsed=$endTime-$beginTime;
+	//echo $timeElaspsed;
+	echo "<p class="."lead".">".$timeElaspsed.' elapsed'."</p>";
 ?>
 <script>
 var inlat=<?php echo json_encode($starray[1]['lat']); ?>;
@@ -372,8 +515,9 @@ google.maps.event.addDomListener(window, 'load', initialize);
 
 </script>
 <p class="lead">
-<a href="<?php echo $seqpath ?>" target="_blank">Get Sequence</a>
+<a href="<?php echo $FinalSeqPath ?>" target="_blank">Get Sequence</a>
 <a href="<?php echo $staypath ?>" target="_blank">Get StayPoints</a>
+<a href="<?php echo $labelLearnPath ?>" target="_blank">Get Labels</a>
 </p>        
       </div> <!-- /row -->
       <div class="row" id="googleMap" style="width:100%;height:500px;"></div>
