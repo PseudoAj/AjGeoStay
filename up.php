@@ -1,6 +1,6 @@
 <?php
 ini_set('memory_limit','256M');
-ini_set('max_execution_time', 900); 
+ini_set('max_execution_time', 90000); 
 error_reporting(0);
 //echo $beginTime;
 ?>
@@ -53,6 +53,7 @@ src="http://maps.googleapis.com/maps/api/js">
   $labelLearnPath="Results\lablearn".date('Y-m-d-h-i-s').".txt";
   //$finalSeqPath="Results\finSeq".date('Y-m-d-h-i-s').".txt";
   $newSeqPath="newseq".date('Y-m-d-h-i-s').".txt";
+  $justCrd="Results\crds".date('Y-m-d-h-i-s').".txt";
   //This is our size condition  
   //This is our limit file type condition  
   //Here we check that $ok was not set to 0 by an error  
@@ -199,6 +200,7 @@ src="http://maps.googleapis.com/maps/api/js">
 		$meanLat=$sumlat;
 		$meanLon=$sumlon;
 		$sumcount=0;
+		
 		//$nexDivLine=explode($token, $nexline);
 		//$nexTmplat=doubleval($nexDivLine[1]);
 		//$nexTmplong=doubleval($nexDivLine[2]);
@@ -373,7 +375,8 @@ src="http://maps.googleapis.com/maps/api/js">
 			$pointLab="A".rand();
 			$labArray[$i]=array('lab'=>$pointLab,'lat'=>$labLat, 'lon'=>$labLon);
 		}
-		//echo $pointLab."->";
+		echo $pointLab."->";
+		
 		$seqArray[$i]=$pointLab;
 		
 	}
@@ -515,7 +518,7 @@ google.maps.event.addDomListener(window, 'load', initialize);
 
 </script>
 <p class="lead">
-<a href="<?php echo $FinalSeqPath ?>" target="_blank">Get Sequence</a>
+<a href="<?php echo $newSeqPath ?>" target="_blank">Get Sequence</a>
 <a href="<?php echo $staypath ?>" target="_blank">Get StayPoints</a>
 <a href="<?php echo $labelLearnPath ?>" target="_blank">Get Labels</a>
 </p>        
